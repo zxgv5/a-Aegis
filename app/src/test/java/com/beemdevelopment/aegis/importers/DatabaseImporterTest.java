@@ -396,6 +396,25 @@ public class DatabaseImporterTest {
         checkImportedEntries(entries);
     }
 
+    @Test
+    public void testImportProtonAuthenticatorEncrypted() throws IOException, DatabaseImporterException, OtpInfoException {
+        List<VaultEntry> entries = importEncrypted(ProtonAuthenticatorImporter.class, "proton_authenticator_encrypted.json", encryptedState -> {
+            final char[] password = "test".toCharArray();
+            return ((ProtonAuthenticatorImporter.EncryptedState) encryptedState).decrypt(password);
+        });
+        for (VaultEntry entry : entries) {
+            // Proton Authenticator forgets the name and issuer of Steam entries
+            if (entry.getInfo().getTypeId().equals(SteamInfo.ID)) {
+                VaultEntry entryVector = getEntryVectorBySecret(entry.getInfo().getSecret());
+                entryVector.setName("");
+                entryVector.setIssuer("Steam");
+                checkImportedEntry(entryVector, entry);
+            } else {
+                checkImportedEntry(entry);
+            }
+        }
+    }
+
     private List<VaultEntry> importPlain(Class<? extends DatabaseImporter> type, String resName)
             throws IOException, DatabaseImporterException {
         return importPlain(type, resName, false);
